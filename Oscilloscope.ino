@@ -1,9 +1,25 @@
 #include <Adafruit_GFX.h>
 #include <MCUFRIEND_kbv.h>
-
 #include <TouchScreen.h>
 
 MCUFRIEND_kbv tft;
+
+/*
+------- SETTINGS -------
+*/
+
+#define ANALOG_PIN A5
+#define TFT_WIDTH 320
+#define TFT_HEIGHT 240
+
+#define MINPRESSURE 200
+#define MAXPRESSURE 1000
+
+#define BUTTON_DELAY_ms 300
+
+const int XP=6,XM=A2,YP=A1,YM=7; //240x320 ID=0x9341
+const int TS_LEFT=177,TS_RT=915,TS_TOP=952,TS_BOT=204;
+// ----------------------------------------
 
 #define BLACK   0x0000
 #define BLUE    0x001F
@@ -15,33 +31,30 @@ MCUFRIEND_kbv tft;
 #define WHITE   0xFFFF
 
 #define VOLTAGE_STEP 2
-#define ANALOG_PIN A5
-#define TFT_WIDTH 320
-#define TFT_HEIGHT 240
 #define CHART_HEIGHT 200
 #define OFFSET_Y -5
 #define VOLTAGE_TEXT_OFFSET_Y -10
 #define MAX_VOLTAGES_CAPACITY 1500
-#define MINPRESSURE 200
-#define MAXPRESSURE 1000
-#define BUTTON_DELAY_ms 300
 #define TIME_STEP_DELTA 20
 #define TIME_STEP_DELTA_us 100
 #define TIME_STEP_DEFAULT 100
-bool isTimeStepMicros = false;
-#define TIME_STEP_TEXT_X 180
-#define LAST_VOLTAGE_TEXT_X 110
-#define AVG_VOLTAGE_TEXT_X 30
 
-const int XP=6,XM=A2,YP=A1,YM=7; //240x320 ID=0x9341
-const int TS_LEFT=177,TS_RT=915,TS_TOP=952,TS_BOT=204;
+#define INDICATORS_BASE_Y 2
+
+#define TIME_STEP_TEXT_X 180
+#define LAST_VOLTAGE_TEXT_X 2
+#define AVG_VOLTAGE_TEXT_X 2
+#define PEAK_VOLTAGE_TEXT_X 82
+#define MIN_VOLTAGE_TEXT_X 82
+
+bool isTimeStepMicros = false;
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 uint8_t lowBound = 0;
 uint8_t peakBound = 5;
 
-uint8_t voltages[MAX_VOLTAGES_CAPACITY];
+//uint8_t voltages[MAX_VOLTAGES_CAPACITY];
 uint16_t voltagesAmount = TFT_WIDTH / VOLTAGE_STEP; 
 uint16_t currentArrayIdx = 0;
 uint16_t timeStep = 100;
@@ -51,6 +64,9 @@ uint16_t lastAnalogReading = 0;
 uint16_t previousY;
 
 double voltagesSum = 0;
+double peakVoltage = 0;
+double minVoltage = 999;
+
 uint16_t voltagesAmountMeasured = 0;
 
 Adafruit_GFX_Button pauseButton, timeStepUpButton, timeStepDownButton;
@@ -107,6 +123,8 @@ void resetScreen()
 
   voltagesSum = 0;
   voltagesAmountMeasured = 0;
+  peakVoltage = 0;
+  minVoltage = 999;
 }
 
 void writeTimeStep()
@@ -124,8 +142,8 @@ void writeTimeStep()
 
 void writeLastVoltage(int analogReading)
 {
-  tft.fillRect(LAST_VOLTAGE_TEXT_X, 10, 40, 10, BLACK);
-  tft.setCursor(LAST_VOLTAGE_TEXT_X, 10);  
+  //tft.fillRect(LAST_VOLTAGE_TEXT_X, INDICATORS_BASE_Y + 10, 40, 10, BLACK);
+  tft.setCursor(LAST_VOLTAGE_TEXT_X, INDICATORS_BASE_Y + 10);  
   tft.setTextColor(WHITE);
   tft.setTextSize(1);  
   tft.print("Curr:");
@@ -135,12 +153,34 @@ void writeLastVoltage(int analogReading)
 
 void writeAvgVoltage()
 {
-  tft.fillRect(AVG_VOLTAGE_TEXT_X, 10, 70, 10, BLACK);
-  tft.setCursor(AVG_VOLTAGE_TEXT_X, 10);  
+  //tft.fillRect(AVG_VOLTAGE_TEXT_X, INDICATORS_BASE_Y, 70, 10, BLACK);
+  tft.setCursor(AVG_VOLTAGE_TEXT_X, INDICATORS_BASE_Y);  
   tft.setTextColor(WHITE);
   tft.setTextSize(1);    
   tft.print("Avg: "); 
   tft.print((float)voltagesSum / voltagesAmountMeasured);
+  tft.print(" V"); 
+}
+
+void writePeakVoltage()
+{
+  //tft.fillRect(PEAK_VOLTAGE_TEXT_X, INDICATORS_BASE_Y, 70, 10, BLACK);
+  tft.setCursor(PEAK_VOLTAGE_TEXT_X, INDICATORS_BASE_Y);  
+  tft.setTextColor(WHITE);
+  tft.setTextSize(1);    
+  tft.print("Peak: "); 
+  tft.print(peakVoltage);
+  tft.print(" V"); 
+}
+
+void writeMinVoltage()
+{
+  //tft.fillRect(MIN_VOLTAGE_TEXT_X, INDICATORS_BASE_Y + 10, 70, 10, BLACK);
+  tft.setCursor(MIN_VOLTAGE_TEXT_X, INDICATORS_BASE_Y + 10);  
+  tft.setTextColor(WHITE);
+  tft.setTextSize(1);    
+  tft.print("Min: "); 
+  tft.print(minVoltage);
   tft.print(" V"); 
 }
 
@@ -170,11 +210,15 @@ void loop() {
     {
       writeLastVoltage(lastAnalogReading);
       writeAvgVoltage();
+      writePeakVoltage();
+      writeMinVoltage();
     }
     else 
     {
-      tft.fillRect(LAST_VOLTAGE_TEXT_X, 10, 70, 10, BLACK);      
-      tft.fillRect(AVG_VOLTAGE_TEXT_X, 10, 70, 10, BLACK);
+      tft.fillRect(LAST_VOLTAGE_TEXT_X, INDICATORS_BASE_Y + 10, 80, 10, BLACK);
+      tft.fillRect(AVG_VOLTAGE_TEXT_X, INDICATORS_BASE_Y, 80, 10, BLACK);  
+      tft.fillRect(MIN_VOLTAGE_TEXT_X, INDICATORS_BASE_Y + 10, 80, 10, BLACK);     
+      tft.fillRect(PEAK_VOLTAGE_TEXT_X, INDICATORS_BASE_Y, 80, 10, BLACK);
     }
     delay(BUTTON_DELAY_ms);
   }
@@ -210,7 +254,11 @@ void loop() {
     uint16_t analogReading = analogRead(ANALOG_PIN);
     lastAnalogReading = analogReading;
     ++voltagesAmountMeasured;
-    voltagesSum += analogToVoltage(analogReading);
+
+    float currentVoltage = analogToVoltage(analogReading);
+    if (currentVoltage > peakVoltage) peakVoltage = currentVoltage;
+    if (currentVoltage < minVoltage) minVoltage = currentVoltage;
+    voltagesSum += currentVoltage;
     uint8_t currentY = map(analogReading, 0, 1023, 0, CHART_HEIGHT);  
     /*
     Serial.print(analogReading);
