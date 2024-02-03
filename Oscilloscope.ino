@@ -230,14 +230,14 @@ void loop() {
       isTimeStepMicros = false;
       timeStep = 20;
     }
-    else timeStep += TIME_STEP_DELTA;
+    else timeStep += (isTimeStepMicros ? TIME_STEP_DELTA_us : TIME_STEP_DELTA);
     writeTimeStep();    
     delay(BUTTON_DELAY_ms);
   }
   if (timeStepDownButton.justPressed())
   {
     timeStepDownButton.drawButton(true);
-    if (static_cast<int16_t>(timeStep) - TIME_STEP_DELTA > 0) timeStep -= TIME_STEP_DELTA;
+    if (static_cast<int16_t>(timeStep) - TIME_STEP_DELTA > 0) timeStep -= (isTimeStepMicros ? TIME_STEP_DELTA_us : TIME_STEP_DELTA);
     else
     {
       isTimeStepMicros = true;
