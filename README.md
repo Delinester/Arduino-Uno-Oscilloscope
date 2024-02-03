@@ -1,6 +1,8 @@
 # Arduino Uno Oscilloscope with TFT Display
 
-This project transforms an Arduino Uno with a 2.4" TFT display into a functional oscilloscope.
+This project transforms an Arduino Uno with a 2.4" TFT display into a functional oscilloscope (if you don't want or cannot afford the professional one).
+![IMG_20240203_164905](https://github.com/Delinester/Arduino-Uno-Oscilloscope/assets/86584693/94951759-4f74-4faf-bf87-bb36bf9c1c20)
+
 
 ## Dependencies
 
